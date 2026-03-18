@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+web/.next/
+web/out/
+
+# Expo
+mobile/.expo/
+mobile/dist/
+
+# Environment
+.env
+.env.local
+.env.production
+mobile/.env
+
+# Build
+build/
+dist/
+
+# OS
+.DS_Store
+*.pem
+
+# Misc
+*.log
+.vercel
