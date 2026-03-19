@@ -10,6 +10,14 @@ web/out/
 # Expo
 mobile/.expo/
 mobile/dist/
+mobile/ios/
+mobile/android/
+
+# Supabase
+supabase/.temp/
+
+# TypeScript
+web/tsconfig.tsbuildinfo
 
 # Environment
 .env
