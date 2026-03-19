@@ -11,13 +11,14 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [confirmed, setConfirmed] = useState(false)
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { username, display_name: username } },
@@ -25,9 +26,32 @@ export default function SignupPage() {
     if (error) {
       setError(error.message)
       setLoading(false)
-    } else {
+    } else if (data.session) {
+      // Email confirmation disabled — session returned immediately
       router.push('/picks')
+    } else {
+      // Email confirmation required
+      setConfirmed(true)
+      setLoading(false)
     }
+  }
+
+  if (confirmed) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-4">
+        <div className="w-full max-w-sm text-center">
+          <Link href="/" className="block text-2xl font-bold text-white mb-8">Playcall</Link>
+          <div className="w-14 h-14 rounded-full bg-sky-500/20 flex items-center justify-center mx-auto mb-5">
+            <span className="text-2xl">📬</span>
+          </div>
+          <h1 className="text-xl font-semibold text-white mb-3">Check your email</h1>
+          <p className="text-white/40 text-sm mb-6">
+            We sent a confirmation link to <span className="text-white/70">{email}</span>. Click it to activate your account.
+          </p>
+          <Link href="/login" className="text-sky-400 text-sm hover:text-sky-300 transition">Back to log in</Link>
+        </div>
+      </div>
+    )
   }
 
   return (
