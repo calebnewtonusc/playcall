@@ -26,7 +26,11 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "calebsnewton@gmail.com"
+        "ascApiKeyPath": "./AuthKey_BUU5Z6J9GL.p8",
+        "ascApiKeyIssuerId": "0532bf3e-7644-40b9-a9c4-eeb3e92a8b9e",
+        "ascApiKeyId": "BUU5Z6J9GL",
+        "ascAppId": "6759190866",
+        "autoIncrement": true
       }
     }
   }

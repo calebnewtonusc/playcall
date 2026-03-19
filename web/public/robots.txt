@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Allow: /pricing
+
+Disallow: /api/
+Disallow: /picks
+Disallow: /leaderboard
+Disallow: /profile
+Disallow: /billing

@@ -76,10 +76,10 @@ export default function LandingPage() {
             Start picking games
           </Link>
           <Link
-            href="/leaderboard"
+            href="/pricing"
             className="w-full sm:w-auto px-7 py-3.5 bg-white/5 hover:bg-white/10 text-white rounded-xl font-semibold text-sm border border-white/10 transition-colors"
           >
-            View leaderboard
+            See pricing
           </Link>
         </div>
       </section>

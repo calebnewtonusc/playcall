@@ -20,7 +20,7 @@ export default function PicksScreen() {
   const [picks, setPicks] = useState<Record<string, Pick>>({})
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [pickLoading, setPickLoading] = useState(false)
+  const [pickLoading, setPickLoading] = useState<Record<string, boolean>>({})
 
   const fetchData = useCallback(async () => {
     const supabase = createClient()
@@ -41,7 +41,7 @@ export default function PicksScreen() {
   useEffect(() => { fetchData() }, [fetchData])
 
   async function handlePick(gameId: string, winner: string) {
-    setPickLoading(true)
+    setPickLoading((prev) => ({ ...prev, [gameId]: true }))
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -50,7 +50,7 @@ export default function PicksScreen() {
       .upsert({ user_id: user.id, game_id: gameId, predicted_winner: winner }, { onConflict: 'user_id,game_id' })
       .select().single()
     if (data) setPicks((prev) => ({ ...prev, [gameId]: data }))
-    setPickLoading(false)
+    setPickLoading((prev) => ({ ...prev, [gameId]: false }))
   }
 
   if (loading) {
@@ -100,14 +100,14 @@ export default function PicksScreen() {
                 <TouchableOpacity
                   style={styles.pickBtn}
                   onPress={() => handlePick(game.id, 'home')}
-                  disabled={pickLoading}
+                  disabled={pickLoading[game.id] ?? false}
                 >
                   <Text style={styles.pickBtnText}>{game.home_team.split(' ').slice(-1)[0]}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.pickBtn}
                   onPress={() => handlePick(game.id, 'away')}
-                  disabled={pickLoading}
+                  disabled={pickLoading[game.id] ?? false}
                 >
                   <Text style={styles.pickBtnText}>{game.away_team.split(' ').slice(-1)[0]}</Text>
                 </TouchableOpacity>

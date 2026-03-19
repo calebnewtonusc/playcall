@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     template: '%s | Playcall',
   },
   description: 'Skill-based sports predictions. No money, all thrill.',
-  metadataBase: new URL('https://web-peach-nine-22.vercel.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://playcall.app'),
   openGraph: {
     siteName: 'Playcall',
     type: 'website',

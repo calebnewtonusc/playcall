@@ -23,7 +23,12 @@ export default function SignupScreen() {
       Alert.alert('Error', error.message)
       setLoading(false)
     } else {
-      router.replace('/(tabs)/picks')
+      Alert.alert(
+        'Check your email',
+        'We sent a confirmation link to ' + email + '. Confirm your email then come back to log in.',
+        [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+      )
+      setLoading(false)
     }
   }
 

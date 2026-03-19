@@ -29,7 +29,7 @@ export default function ProfilePage() {
       setLoading(false)
     }
     fetchProfile()
-  }, [])
+  }, [router])
 
   if (loading) {
     return (

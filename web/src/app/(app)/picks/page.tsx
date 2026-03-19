@@ -10,7 +10,7 @@ export default function PicksPage() {
   const [games, setGames] = useState<Game[]>([])
   const [picks, setPicks] = useState<Record<string, Pick>>({})
   const [loading, setLoading] = useState(true)
-  const [pickLoading, setPickLoading] = useState(false)
+  const [pickLoading, setPickLoading] = useState<Record<string, boolean>>({})
   const [error, setError] = useState<string | null>(null)
 
   const fetchData = useCallback(async () => {
@@ -42,21 +42,26 @@ export default function PicksPage() {
   useEffect(() => { fetchData() }, [fetchData])
 
   async function handlePick(gameId: string, winner: Winner) {
-    setPickLoading(true)
+    setPickLoading((prev) => ({ ...prev, [gameId]: true }))
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      setPickLoading((prev) => ({ ...prev, [gameId]: false }))
+      return
+    }
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('picks')
       .upsert({ user_id: user.id, game_id: gameId, predicted_winner: winner }, { onConflict: 'user_id,game_id' })
       .select()
       .single()
 
-    if (data) {
+    if (error) {
+      setError('Failed to save pick. Please try again.')
+    } else if (data) {
       setPicks((prev) => ({ ...prev, [gameId]: data }))
     }
-    setPickLoading(false)
+    setPickLoading((prev) => ({ ...prev, [gameId]: false }))
   }
 
   if (loading) {
@@ -69,8 +74,9 @@ export default function PicksPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-24">
+      <div className="flex flex-col items-center justify-center py-24 gap-3">
         <p className="text-red-400 text-sm">{error}</p>
+        <button onClick={() => { setError(null); fetchData() }} className="text-sky-400 text-sm hover:text-sky-300 transition">Try again</button>
       </div>
     )
   }
@@ -96,7 +102,7 @@ export default function PicksPage() {
             game={game}
             existingPick={picks[game.id]}
             onPick={handlePick}
-            loading={pickLoading}
+            loading={pickLoading[game.id] ?? false}
           />
         ))}
       </div>
@@ -111,7 +117,7 @@ export default function PicksPage() {
                 game={game}
                 existingPick={picks[game.id]}
                 onPick={handlePick}
-                loading={pickLoading}
+                loading={pickLoading[game.id] ?? false}
               />
             ))}
           </div>

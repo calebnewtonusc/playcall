@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { PRO_FEATURES } from '@/lib/stripe'
+import { PRO_FEATURES } from '@/lib/stripe-client'
 import { createClient } from '@/lib/supabase/client'
 
 export default function PricingPage() {

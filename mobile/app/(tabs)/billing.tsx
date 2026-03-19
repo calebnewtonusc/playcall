@@ -76,7 +76,7 @@ export default function BillingScreen() {
             </Text>
             <TouchableOpacity
               style={styles.upgradeBtn}
-              onPress={() => Linking.openURL('https://web-peach-nine-22.vercel.app/pricing')}
+              onPress={() => Linking.openURL('https://playcall.app/pricing')}
             >
               <Text style={styles.upgradeBtnText}>Upgrade to Pro — $4/mo</Text>
             </TouchableOpacity>

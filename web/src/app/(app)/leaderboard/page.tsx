@@ -20,8 +20,8 @@ export default function LeaderboardPage() {
       const { data } = await supabase
         .from('user_stats')
         .select('*, profiles!inner(username, display_name, avatar_url)')
-        .order(tab === 'total' ? 'total_points' : tab === 'accuracy' ? 'correct_picks' : 'current_streak', { ascending: false })
-        .limit(50)
+        .order('total_points', { ascending: false })
+        .limit(100)
 
       const mapped: LeaderboardEntry[] = (data || []).map((row: {
         user_id: string
@@ -30,7 +30,7 @@ export default function LeaderboardPage() {
         total_picks: number
         current_streak: number
         profiles: { username: string; display_name: string | null; avatar_url: string | null }
-      }, i: number) => ({
+      }) => ({
         user_id: row.user_id,
         username: row.profiles.username,
         display_name: row.profiles.display_name,
@@ -39,10 +39,21 @@ export default function LeaderboardPage() {
         correct_picks: row.correct_picks,
         total_picks: row.total_picks,
         current_streak: row.current_streak,
-        rank: i + 1,
+        rank: 0,
       }))
 
-      setEntries(mapped)
+      const sorted =
+        tab === 'accuracy'
+          ? [...mapped].sort((a, b) => {
+              const ra = a.total_picks > 0 ? a.correct_picks / a.total_picks : 0
+              const rb = b.total_picks > 0 ? b.correct_picks / b.total_picks : 0
+              return rb - ra
+            })
+          : tab === 'streak'
+          ? [...mapped].sort((a, b) => b.current_streak - a.current_streak)
+          : mapped
+
+      setEntries(sorted.slice(0, 50).map((e, i) => ({ ...e, rank: i + 1 })))
       setLoading(false)
     }
     fetchLeaderboard()
@@ -50,7 +61,7 @@ export default function LeaderboardPage() {
 
   const tabs = [
     { key: 'total' as const, label: 'Total Points' },
-    { key: 'accuracy' as const, label: 'Accuracy' },
+    { key: 'accuracy' as const, label: 'Accuracy %' },
     { key: 'streak' as const, label: 'Streaks' },
   ]
 
@@ -61,7 +72,6 @@ export default function LeaderboardPage() {
         <p className="text-white/40 text-sm">Top pickers this season</p>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-2 bg-white/5 p-1 rounded-xl">
         {tabs.map((t) => (
           <button

@@ -3,7 +3,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { PRO_FEATURES } from '@/lib/stripe'
+import { PRO_FEATURES } from '@/lib/stripe-client'
 
 interface Profile {
   username: string
