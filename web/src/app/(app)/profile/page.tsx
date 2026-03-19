@@ -1,9 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Profile, UserStats } from '@/lib/types'
 
 export default function ProfilePage() {
+  const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -12,7 +14,10 @@ export default function ProfilePage() {
     async function fetchProfile() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        router.push('/login')
+        return
+      }
 
       const [{ data: profileData }, { data: statsData }] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),

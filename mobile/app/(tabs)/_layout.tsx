@@ -38,6 +38,13 @@ export default function TabLayout() {
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>👤</Text>,
         }}
       />
+      <Tabs.Screen
+        name="billing"
+        options={{
+          title: 'Billing',
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>💳</Text>,
+        }}
+      />
     </Tabs>
   )
 }

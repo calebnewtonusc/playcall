@@ -2,11 +2,15 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Playcall — Pick Games, Not Losses',
+  title: {
+    default: 'Playcall',
+    template: '%s | Playcall',
+  },
   description: 'Skill-based sports predictions. No money, all thrill.',
+  metadataBase: new URL('https://web-peach-nine-22.vercel.app'),
   openGraph: {
-    title: 'Playcall',
-    description: 'Skill-based sports predictions. No money, all thrill.',
+    siteName: 'Playcall',
+    type: 'website',
   },
 }
 

@@ -1,31 +1,43 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import GameCard from '@/components/GameCard'
 import { Game, Pick, Winner } from '@/lib/types'
 
 export default function PicksPage() {
+  const router = useRouter()
   const [games, setGames] = useState<Game[]>([])
   const [picks, setPicks] = useState<Record<string, Pick>>({})
   const [loading, setLoading] = useState(true)
   const [pickLoading, setPickLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchData = useCallback(async () => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      router.push('/login')
+      return
+    }
 
-    const [{ data: gamesData }, { data: picksData }] = await Promise.all([
+    const [{ data: gamesData, error: gamesError }, { data: picksData, error: picksError }] = await Promise.all([
       supabase.from('games').select('*').order('start_time', { ascending: true }),
       supabase.from('picks').select('*').eq('user_id', user.id),
     ])
+
+    if (gamesError || picksError) {
+      setError('Failed to load games. Please try again.')
+      setLoading(false)
+      return
+    }
 
     setGames(gamesData || [])
     const picksMap: Record<string, Pick> = {}
     picksData?.forEach((p) => { picksMap[p.game_id] = p })
     setPicks(picksMap)
     setLoading(false)
-  }, [])
+  }, [router])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -51,6 +63,14 @@ export default function PicksPage() {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <p className="text-red-400 text-sm">{error}</p>
       </div>
     )
   }

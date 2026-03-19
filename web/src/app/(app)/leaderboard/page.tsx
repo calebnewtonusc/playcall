@@ -12,6 +12,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     async function fetchLeaderboard() {
+      setLoading(true)
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       setCurrentUserId(user?.id || null)
@@ -22,8 +23,14 @@ export default function LeaderboardPage() {
         .order(tab === 'total' ? 'total_points' : tab === 'accuracy' ? 'correct_picks' : 'current_streak', { ascending: false })
         .limit(50)
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mapped: LeaderboardEntry[] = (data || []).map((row: any, i: number) => ({
+      const mapped: LeaderboardEntry[] = (data || []).map((row: {
+        user_id: string
+        total_points: number
+        correct_picks: number
+        total_picks: number
+        current_streak: number
+        profiles: { username: string; display_name: string | null; avatar_url: string | null }
+      }, i: number) => ({
         user_id: row.user_id,
         username: row.profiles.username,
         display_name: row.profiles.display_name,
