@@ -36,6 +36,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "8edd28db-f0a3-46a2-aabc-9095c522cbc7"
+      }
+    },
+    "owner": "calebsnewton"
   }
 }
