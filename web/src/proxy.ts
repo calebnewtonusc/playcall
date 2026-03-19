@@ -4,7 +4,7 @@ import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies'
 
 type CookieToSet = { name: string; value: string; options?: Partial<ResponseCookie> }
 
-const PUBLIC_PATHS = ['/', '/login', '/signup', '/pricing']
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/pricing', '/forgot-password', '/reset-password']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -12,7 +12,8 @@ export async function proxy(request: NextRequest) {
   if (
     PUBLIC_PATHS.some((p) => pathname === p) ||
     pathname.startsWith('/api/webhooks/stripe') ||
-    pathname.startsWith('/api/stripe')
+    pathname.startsWith('/api/stripe') ||
+    pathname.startsWith('/api/waitlist')
   ) {
     return NextResponse.next()
   }

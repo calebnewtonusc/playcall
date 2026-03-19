@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native'
 import { useRouter } from 'expo-router'
 import { createClient } from '../lib/supabase'
 
@@ -14,20 +14,33 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchProfile() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const [{ data: p }, { data: s }] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).single(),
-        supabase.from('user_stats').select('*').eq('user_id', user.id).single(),
-      ])
-      setProfile(p); setStats(s); setLoading(false)
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.replace('/(auth)/login')
+          return
+        }
+        const [{ data: p, error: profileErr }, { data: s, error: statsErr }] = await Promise.all([
+          supabase.from('profiles').select('*').eq('id', user.id).single(),
+          supabase.from('user_stats').select('*').eq('user_id', user.id).single(),
+        ])
+        if (profileErr) throw profileErr
+        if (statsErr && statsErr.code !== 'PGRST116') throw statsErr
+        setProfile(p)
+        setStats(s)
+      } catch {
+        setError('Failed to load profile. Pull to refresh.')
+      } finally {
+        setLoading(false)
+      }
     }
     fetchProfile()
-  }, [])
+  }, [router])
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -36,6 +49,14 @@ export default function ProfileScreen() {
   }
 
   if (loading) return <View style={styles.center}><ActivityIndicator color="#0ea5e9" /></View>
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ color: '#f87171', fontSize: 14, textAlign: 'center', paddingHorizontal: 24 }}>{error}</Text>
+      </View>
+    )
+  }
 
   const accuracy = stats && stats.total_picks > 0
     ? Math.round((stats.correct_picks / stats.total_picks) * 100)

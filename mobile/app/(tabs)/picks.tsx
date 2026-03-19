@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, ActivityIndicator, Alert } from 'react-native'
 import { createClient } from '../lib/supabase'
 import { formatDistanceToNow } from 'date-fns'
 import { useFocusEffect } from 'expo-router'
@@ -69,7 +69,11 @@ export default function PicksScreen() {
       .from('picks')
       .upsert({ user_id: user.id, game_id: gameId, predicted_winner: winner }, { onConflict: 'user_id,game_id' })
       .select().single()
-    if (!pickError && data) setPicks((prev) => ({ ...prev, [gameId]: data }))
+    if (pickError) {
+      Alert.alert('Error', 'Failed to save pick. Please try again.')
+    } else if (data) {
+      setPicks((prev) => ({ ...prev, [gameId]: data }))
+    }
     setPickLoading((prev) => ({ ...prev, [gameId]: false }))
   }
 

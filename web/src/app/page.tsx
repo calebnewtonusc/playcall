@@ -1,4 +1,7 @@
+'use client'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 
 const FEATURES = [
   {
@@ -24,6 +27,14 @@ const FEATURES = [
 const SPORTS = ['NBA', 'NFL', 'Soccer']
 
 export default function LandingPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data: { user } }) => {
+      if (user) setIsLoggedIn(true)
+    })
+  }, [])
+
   return (
     <div className="min-h-screen bg-[#080810] text-white">
       {/* Nav */}
@@ -36,18 +47,29 @@ export default function LandingPage() {
             </span>
           ))}
           <div className="w-px h-4 bg-white/10 mx-2 hidden sm:block" />
-          <Link
-            href="/login"
-            className="px-4 py-2 text-sm text-white/60 hover:text-white transition-colors"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/signup"
-            className="px-4 py-2 text-sm bg-white text-black rounded-lg font-semibold hover:bg-white/90 transition-colors"
-          >
-            Sign up free
-          </Link>
+          {isLoggedIn ? (
+            <Link
+              href="/picks"
+              className="px-4 py-2 text-sm bg-white text-black rounded-lg font-semibold hover:bg-white/90 transition-colors"
+            >
+              Go to app
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="px-4 py-2 text-sm text-white/60 hover:text-white transition-colors"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="px-4 py-2 text-sm bg-white text-black rounded-lg font-semibold hover:bg-white/90 transition-colors"
+              >
+                Sign up free
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 

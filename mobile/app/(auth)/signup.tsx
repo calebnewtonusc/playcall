@@ -44,6 +44,8 @@ export default function SignupScreen() {
           value={username}
           onChangeText={(v) => setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
           autoCapitalize="none"
+          textContentType="username"
+          autoCorrect={false}
         />
         <TextInput
           style={styles.input}
@@ -53,6 +55,8 @@ export default function SignupScreen() {
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
+          textContentType="emailAddress"
+          autoCorrect={false}
         />
         <TextInput
           style={styles.input}
@@ -61,6 +65,8 @@ export default function SignupScreen() {
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          textContentType="newPassword"
+          autoCorrect={false}
         />
         <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleSignup} disabled={loading}>
           <Text style={styles.buttonText}>{loading ? 'Creating account...' : 'Create account'}</Text>

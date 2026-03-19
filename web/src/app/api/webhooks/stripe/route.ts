@@ -13,10 +13,13 @@ function getSupabaseAdmin() {
 }
 
 async function setProStatus(userId: string, isPro: boolean) {
-  await getSupabaseAdmin()
+  const { error } = await getSupabaseAdmin()
     .from('profiles')
     .update({ is_pro: isPro })
     .eq('id', userId)
+  if (error) {
+    console.error(`[stripe-webhook] setProStatus failed for ${userId}:`, error.message)
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -28,9 +31,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
   }
 
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+  if (!webhookSecret) {
+    console.error('[stripe-webhook] STRIPE_WEBHOOK_SECRET is not configured')
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 })
+  }
+
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
   } catch (err) {
     console.error('Webhook signature verification failed:', err)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
@@ -56,7 +65,9 @@ export async function POST(req: NextRequest) {
       const sub = event.data.object as Stripe.Subscription
       const userId = getUserId(sub)
       if (userId) {
-        const isPro = sub.status === 'active' || sub.status === 'trialing'
+        // Keep pro during grace period (past_due) — Stripe retries for ~1 week before canceling.
+        // Only revoke on canceled or unpaid so users aren't punished for a single card failure.
+        const isPro = ['active', 'trialing', 'past_due'].includes(sub.status)
         await setProStatus(userId, isPro)
       }
       break

@@ -15,36 +15,45 @@ export default function LeaderboardScreen() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('total')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchLeaderboard() {
       setLoading(true)
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      setCurrentUserId(user?.id || null)
+      setError(null)
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        setCurrentUserId(user?.id || null)
 
-      const { data } = await supabase
-        .from('user_stats')
-        .select('*, profiles!inner(username, display_name)')
-        .order('total_points', { ascending: false })
-        .limit(100)
+        const { data, error: fetchError } = await supabase
+          .from('user_stats')
+          .select('*, profiles!inner(username, display_name)')
+          .order('total_points', { ascending: false })
+          .limit(100)
 
-      const mapped: Omit<Entry, 'rank'>[] = (data || []).map((row: {
-        user_id: string; total_points: number; correct_picks: number
-        total_picks: number; current_streak: number
-        profiles: { username: string; display_name: string | null }
-      }) => ({
-        user_id: row.user_id,
-        username: row.profiles.username,
-        display_name: row.profiles.display_name,
-        total_points: row.total_points,
-        correct_picks: row.correct_picks,
-        total_picks: row.total_picks,
-        current_streak: row.current_streak,
-      }))
+        if (fetchError) throw fetchError
 
-      setAllData(mapped)
-      setLoading(false)
+        const mapped: Omit<Entry, 'rank'>[] = (data || []).map((row: {
+          user_id: string; total_points: number; correct_picks: number
+          total_picks: number; current_streak: number
+          profiles: { username: string; display_name: string | null }
+        }) => ({
+          user_id: row.user_id,
+          username: row.profiles.username,
+          display_name: row.profiles.display_name,
+          total_points: row.total_points,
+          correct_picks: row.correct_picks,
+          total_picks: row.total_picks,
+          current_streak: row.current_streak,
+        }))
+
+        setAllData(mapped)
+      } catch {
+        setError('Failed to load leaderboard. Pull to refresh.')
+      } finally {
+        setLoading(false)
+      }
     }
     fetchLeaderboard()
   }, [])
@@ -53,11 +62,13 @@ export default function LeaderboardScreen() {
   useEffect(() => {
     const sorted =
       tab === 'accuracy'
-        ? [...allData].sort((a, b) => {
-            const ra = a.total_picks > 0 ? a.correct_picks / a.total_picks : 0
-            const rb = b.total_picks > 0 ? b.correct_picks / b.total_picks : 0
-            return rb - ra
-          })
+        ? [...allData]
+            .filter((e) => e.total_picks >= 5)
+            .sort((a, b) => {
+              const ra = a.correct_picks / a.total_picks
+              const rb = b.correct_picks / b.total_picks
+              return rb - ra
+            })
         : tab === 'streak'
         ? [...allData].sort((a, b) => b.current_streak - a.current_streak)
         : allData
@@ -90,6 +101,10 @@ export default function LeaderboardScreen() {
 
       {loading ? (
         <View style={styles.center}><ActivityIndicator color="#0ea5e9" /></View>
+      ) : error ? (
+        <View style={styles.center}>
+          <Text style={{ color: '#f87171', fontSize: 14, textAlign: 'center', paddingHorizontal: 24 }}>{error}</Text>
+        </View>
       ) : (
         <ScrollView contentContainerStyle={styles.list}>
           {entries.length === 0 && (

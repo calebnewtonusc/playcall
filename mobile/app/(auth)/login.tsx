@@ -35,6 +35,8 @@ export default function LoginScreen() {
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
+          textContentType="emailAddress"
+          autoCorrect={false}
         />
         <TextInput
           style={styles.input}
@@ -43,6 +45,8 @@ export default function LoginScreen() {
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          textContentType="password"
+          autoCorrect={false}
         />
         <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleLogin} disabled={loading}>
           <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Log in'}</Text>

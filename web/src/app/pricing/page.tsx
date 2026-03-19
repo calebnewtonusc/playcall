@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PRO_FEATURES } from '@/lib/stripe-client'
@@ -9,6 +9,13 @@ export default function PricingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [upgradeError, setUpgradeError] = useState<string | null>(null)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data: { user } }) => {
+      if (user) setIsLoggedIn(true)
+    })
+  }, [])
 
   async function handleUpgrade() {
     setLoading(true)
@@ -42,8 +49,14 @@ export default function PricingPage() {
       <nav className="flex items-center justify-between px-8 py-5 border-b border-white/[0.06]">
         <Link href="/" className="text-lg font-bold tracking-tight">Playcall</Link>
         <div className="flex items-center gap-2">
-          <Link href="/login" className="px-4 py-2 text-sm text-white/60 hover:text-white transition-colors">Log in</Link>
-          <Link href="/signup" className="px-4 py-2 text-sm bg-white text-black rounded-lg font-semibold hover:bg-white/90 transition-colors">Sign up free</Link>
+          {isLoggedIn ? (
+            <Link href="/picks" className="px-4 py-2 text-sm bg-white text-black rounded-lg font-semibold hover:bg-white/90 transition-colors">Go to app</Link>
+          ) : (
+            <>
+              <Link href="/login" className="px-4 py-2 text-sm text-white/60 hover:text-white transition-colors">Log in</Link>
+              <Link href="/signup" className="px-4 py-2 text-sm bg-white text-black rounded-lg font-semibold hover:bg-white/90 transition-colors">Sign up free</Link>
+            </>
+          )}
         </div>
       </nav>
 
