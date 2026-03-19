@@ -13,6 +13,12 @@ function isRateLimited(ip: string): boolean {
 
   if (!entry || now > entry.resetAt) {
     rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
+    // Prune expired entries if map grows large (prevents unbounded growth in long-lived processes)
+    if (rateLimitMap.size > 1000) {
+      for (const [k, v] of rateLimitMap) {
+        if (now > v.resetAt) rateLimitMap.delete(k)
+      }
+    }
     return false
   }
 
@@ -58,18 +64,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const payload = {
     email: body.email.trim().toLowerCase(),
     name: body.name?.trim() ?? null,
-    source: body.source?.trim() ?? 'playcall-website',
+    // Hardcode source — never trust client-provided value
+    source: 'playcall-website',
     created_at: new Date().toISOString(),
   }
 
-  // Send to Clay (fire-and-forget on failure — don't block the response)
+  // Send to Clay (fire-and-forget — don't block the response)
   sendToClayWebhook(CLAY_PLAYCALL_WEBHOOK_URL, payload).catch((err) => {
     console.error('[waitlist] Clay webhook error (non-fatal):', err)
   })
 
-  // Attempt to save to Supabase if configured — graceful fail if table doesn't exist
+  // Save to Supabase — requires SERVICE_ROLE_KEY; anon key must not be used for writes
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (supabaseUrl && supabaseKey) {
     try {
@@ -86,10 +93,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
       if (!res.ok) {
         const text = await res.text().catch(() => '')
-        console.warn('[waitlist] Supabase insert failed (non-fatal):', res.status, text)
+        console.error('[waitlist] Supabase insert failed:', res.status, text)
+        return NextResponse.json({ error: 'Failed to save to waitlist' }, { status: 500 })
       }
     } catch (err) {
-      console.warn('[waitlist] Supabase insert threw (non-fatal):', err)
+      console.error('[waitlist] Supabase insert threw:', err)
+      return NextResponse.json({ error: 'Failed to save to waitlist' }, { status: 500 })
     }
   }
 

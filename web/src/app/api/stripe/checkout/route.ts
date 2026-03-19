@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getStripeServer, PRO_PRICE_ID } from '@/lib/stripe'
+import { getStripeServer, getProPriceId } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -7,9 +7,9 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: NextRequest) {
   const stripe = getStripeServer()
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-  if (!user) {
+  if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -22,10 +22,16 @@ export async function POST(req: NextRequest) {
   let customerId = profile?.stripe_customer_id
 
   if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: user.email,
-      metadata: { supabase_user_id: user.id, username: profile?.username ?? '' },
-    })
+    let customer
+    try {
+      customer = await stripe.customers.create({
+        email: user.email,
+        metadata: { supabase_user_id: user.id, username: profile?.username ?? '' },
+      })
+    } catch (err) {
+      console.error('[checkout] Stripe customer creation failed:', err)
+      return NextResponse.json({ error: 'Failed to create billing account' }, { status: 500 })
+    }
     customerId = customer.id
 
     await supabase
@@ -34,19 +40,26 @@ export async function POST(req: NextRequest) {
       .eq('id', user.id)
   }
 
-  const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  // Always use the configured site URL — never trust client Origin header for redirect URLs
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
-    mode: 'subscription',
-    payment_method_types: ['card'],
-    line_items: [{ price: PRO_PRICE_ID, quantity: 1 }],
-    success_url: `${origin}/billing?success=true`,
-    cancel_url: `${origin}/pricing`,
-    subscription_data: {
-      metadata: { supabase_user_id: user.id },
-    },
-  })
+  let session
+  try {
+    session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [{ price: getProPriceId(), quantity: 1 }],
+      success_url: `${origin}/billing?success=true`,
+      cancel_url: `${origin}/pricing`,
+      subscription_data: {
+        metadata: { supabase_user_id: user.id },
+      },
+    })
+  } catch (err) {
+    console.error('[checkout] Stripe session creation failed:', err)
+    return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 })
+  }
 
   return NextResponse.json({ url: session.url })
 }

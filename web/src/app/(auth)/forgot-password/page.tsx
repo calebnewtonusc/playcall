@@ -13,15 +13,18 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    const supabase = createClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-    } else {
+    try {
+      const supabase = createClient()
+      // Always show success regardless of error to avoid email enumeration
+      await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
       setSent(true)
+    } catch {
+      // Network error only — still show success to avoid enumeration
+      setSent(true)
+    } finally {
+      setLoading(false)
     }
   }
 

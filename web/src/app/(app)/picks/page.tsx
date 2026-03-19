@@ -14,29 +14,31 @@ export default function PicksPage() {
   const [error, setError] = useState<string | null>(null)
 
   const fetchData = useCallback(async () => {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/login')
-      return
-    }
+    try {
+      const supabase = createClient()
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) {
+        router.push('/login')
+        return
+      }
 
-    const [{ data: gamesData, error: gamesError }, { data: picksData, error: picksError }] = await Promise.all([
-      supabase.from('games').select('*').order('start_time', { ascending: true }),
-      supabase.from('picks').select('*').eq('user_id', user.id),
-    ])
+      const [{ data: gamesData, error: gamesError }, { data: picksData, error: picksError }] = await Promise.all([
+        supabase.from('games').select('*').order('start_time', { ascending: true }),
+        supabase.from('picks').select('*').eq('user_id', user.id),
+      ])
 
-    if (gamesError || picksError) {
-      setError('Failed to load games. Please try again.')
+      if (gamesError || picksError) {
+        setError('Failed to load games. Please try again.')
+        return
+      }
+
+      setGames(gamesData || [])
+      const picksMap: Record<string, Pick> = {}
+      picksData?.forEach((p) => { picksMap[p.game_id] = p })
+      setPicks(picksMap)
+    } finally {
       setLoading(false)
-      return
     }
-
-    setGames(gamesData || [])
-    const picksMap: Record<string, Pick> = {}
-    picksData?.forEach((p) => { picksMap[p.game_id] = p })
-    setPicks(picksMap)
-    setLoading(false)
   }, [router])
 
   useEffect(() => { fetchData() }, [fetchData])

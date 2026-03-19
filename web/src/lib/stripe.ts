@@ -3,7 +3,11 @@ import Stripe from 'stripe'
 let _stripe: Stripe | null = null
 export function getStripeServer(): Stripe {
   if (!_stripe) {
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    const key = process.env.STRIPE_SECRET_KEY
+    if (!key) {
+      throw new Error('[stripe] STRIPE_SECRET_KEY is not configured')
+    }
+    _stripe = new Stripe(key, {
       apiVersion: '2026-02-25.clover',
     })
   }
@@ -12,4 +16,8 @@ export function getStripeServer(): Stripe {
 
 export { getStripeServer as stripe }
 
-export const PRO_PRICE_ID = process.env.STRIPE_PRO_PRICE_ID!
+export function getProPriceId(): string {
+  const id = process.env.STRIPE_PRO_PRICE_ID
+  if (!id) throw new Error('[stripe] STRIPE_PRO_PRICE_ID is not configured')
+  return id
+}

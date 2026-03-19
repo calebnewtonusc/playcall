@@ -17,21 +17,23 @@ export default function SignupPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    const supabase = createClient()
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { username, display_name: username } },
-    })
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-    } else if (data.session) {
-      // Email confirmation disabled — session returned immediately
-      router.push('/picks')
-    } else {
-      // Email confirmation required
-      setConfirmed(true)
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { username, display_name: username } },
+      })
+      if (error) {
+        setError(error.message)
+      } else if (data.session) {
+        // Email confirmation disabled — session returned immediately
+        router.push('/picks')
+      } else {
+        // Email confirmation required
+        setConfirmed(true)
+      }
+    } finally {
       setLoading(false)
     }
   }

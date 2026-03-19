@@ -21,16 +21,19 @@ function BillingContent() {
 
   useEffect(() => {
     async function fetchProfile() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data } = await supabase
-        .from('profiles')
-        .select('username, is_pro, stripe_customer_id')
-        .eq('id', user.id)
-        .single()
-      setProfile(data)
-      setLoading(false)
+      try {
+        const supabase = createClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) return
+        const { data } = await supabase
+          .from('profiles')
+          .select('username, is_pro, stripe_customer_id')
+          .eq('id', user.id)
+          .single()
+        setProfile(data)
+      } finally {
+        setLoading(false)
+      }
     }
     fetchProfile()
   }, [])

@@ -7,9 +7,9 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: NextRequest) {
   const stripe = getStripeServer()
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-  if (!user) {
+  if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -23,12 +23,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No billing account found' }, { status: 400 })
   }
 
-  const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  // Always use the configured site URL — never trust client Origin header for redirect URLs
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
-  const session = await stripe.billingPortal.sessions.create({
-    customer: profile.stripe_customer_id,
-    return_url: `${origin}/billing`,
-  })
+  let session
+  try {
+    session = await stripe.billingPortal.sessions.create({
+      customer: profile.stripe_customer_id,
+      return_url: `${origin}/billing`,
+    })
+  } catch (err) {
+    console.error('[portal] Stripe portal session creation failed:', err)
+    return NextResponse.json({ error: 'Failed to open billing portal' }, { status: 500 })
+  }
 
   return NextResponse.json({ url: session.url })
 }

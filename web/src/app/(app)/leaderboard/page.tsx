@@ -13,48 +13,51 @@ export default function LeaderboardPage() {
   useEffect(() => {
     async function fetchLeaderboard() {
       setLoading(true)
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      setCurrentUserId(user?.id || null)
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        setCurrentUserId(user?.id || null)
 
-      const orderCol =
-        tab === 'accuracy' ? 'accuracy_rate' :
-        tab === 'streak' ? 'current_streak' :
-        'total_points'
+        const orderCol =
+          tab === 'accuracy' ? 'accuracy_rate' :
+          tab === 'streak' ? 'current_streak' :
+          'total_points'
 
-      let query = supabase
-        .from('user_stats')
-        .select('*, profiles!inner(username, display_name, avatar_url)')
-        .order(orderCol, { ascending: false })
-        .limit(100)
+        let query = supabase
+          .from('user_stats')
+          .select('*, profiles!inner(username, display_name, avatar_url)')
+          .order(orderCol, { ascending: false })
+          .limit(100)
 
-      if (tab === 'accuracy') {
-        query = query.gte('total_picks', 5) as typeof query
+        if (tab === 'accuracy') {
+          query = query.gte('total_picks', 5) as typeof query
+        }
+
+        const { data } = await query
+
+        const mapped: LeaderboardEntry[] = (data || []).map((row: {
+          user_id: string
+          total_points: number
+          correct_picks: number
+          total_picks: number
+          current_streak: number
+          profiles: { username: string; display_name: string | null; avatar_url: string | null }
+        }) => ({
+          user_id: row.user_id,
+          username: row.profiles.username,
+          display_name: row.profiles.display_name,
+          avatar_url: row.profiles.avatar_url,
+          total_points: row.total_points,
+          correct_picks: row.correct_picks,
+          total_picks: row.total_picks,
+          current_streak: row.current_streak,
+          rank: 0,
+        }))
+
+        setEntries(mapped.slice(0, 50).map((e, i) => ({ ...e, rank: i + 1 })))
+      } finally {
+        setLoading(false)
       }
-
-      const { data } = await query
-
-      const mapped: LeaderboardEntry[] = (data || []).map((row: {
-        user_id: string
-        total_points: number
-        correct_picks: number
-        total_picks: number
-        current_streak: number
-        profiles: { username: string; display_name: string | null; avatar_url: string | null }
-      }) => ({
-        user_id: row.user_id,
-        username: row.profiles.username,
-        display_name: row.profiles.display_name,
-        avatar_url: row.profiles.avatar_url,
-        total_points: row.total_points,
-        correct_picks: row.correct_picks,
-        total_picks: row.total_picks,
-        current_streak: row.current_streak,
-        rank: 0,
-      }))
-
-      setEntries(mapped.slice(0, 50).map((e, i) => ({ ...e, rank: i + 1 })))
-      setLoading(false)
     }
     fetchLeaderboard()
   }, [tab])
