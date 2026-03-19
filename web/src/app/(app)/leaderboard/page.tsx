@@ -17,11 +17,22 @@ export default function LeaderboardPage() {
       const { data: { user } } = await supabase.auth.getUser()
       setCurrentUserId(user?.id || null)
 
-      const { data } = await supabase
+      const orderCol =
+        tab === 'accuracy' ? 'accuracy_rate' :
+        tab === 'streak' ? 'current_streak' :
+        'total_points'
+
+      let query = supabase
         .from('user_stats')
         .select('*, profiles!inner(username, display_name, avatar_url)')
-        .order('total_points', { ascending: false })
+        .order(orderCol, { ascending: false })
         .limit(100)
+
+      if (tab === 'accuracy') {
+        query = query.gte('total_picks', 5) as typeof query
+      }
+
+      const { data } = await query
 
       const mapped: LeaderboardEntry[] = (data || []).map((row: {
         user_id: string
@@ -42,18 +53,7 @@ export default function LeaderboardPage() {
         rank: 0,
       }))
 
-      const sorted =
-        tab === 'accuracy'
-          ? [...mapped].sort((a, b) => {
-              const ra = a.total_picks > 0 ? a.correct_picks / a.total_picks : 0
-              const rb = b.total_picks > 0 ? b.correct_picks / b.total_picks : 0
-              return rb - ra
-            })
-          : tab === 'streak'
-          ? [...mapped].sort((a, b) => b.current_streak - a.current_streak)
-          : mapped
-
-      setEntries(sorted.slice(0, 50).map((e, i) => ({ ...e, rank: i + 1 })))
+      setEntries(mapped.slice(0, 50).map((e, i) => ({ ...e, rank: i + 1 })))
       setLoading(false)
     }
     fetchLeaderboard()

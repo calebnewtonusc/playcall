@@ -9,8 +9,8 @@ export default function Index() {
   useEffect(() => {
     async function checkAuth() {
       const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
         router.replace('/(tabs)/picks')
       } else {
         router.replace('/(auth)/login')

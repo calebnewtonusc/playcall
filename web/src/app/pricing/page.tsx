@@ -8,9 +8,11 @@ import { createClient } from '@/lib/supabase/client'
 export default function PricingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [upgradeError, setUpgradeError] = useState<string | null>(null)
 
   async function handleUpgrade() {
     setLoading(true)
+    setUpgradeError(null)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -19,16 +21,19 @@ export default function PricingPage() {
       return
     }
 
-    const res = await fetch('/api/stripe/checkout', { method: 'POST' })
-    const { url, error } = await res.json()
-
-    if (error || !url) {
-      console.error(error)
+    try {
+      const res = await fetch('/api/stripe/checkout', { method: 'POST' })
+      const { url, error } = await res.json()
+      if (error || !url) {
+        setUpgradeError('Could not start checkout. Please try again.')
+        setLoading(false)
+        return
+      }
+      window.location.href = url
+    } catch {
+      setUpgradeError('Something went wrong. Please try again.')
       setLoading(false)
-      return
     }
-
-    window.location.href = url
   }
 
   return (
@@ -107,6 +112,7 @@ export default function PricingPage() {
                 </li>
               ))}
             </ul>
+            {upgradeError && <p className="text-red-400 text-xs mb-3">{upgradeError}</p>}
             <button
               onClick={handleUpgrade}
               disabled={loading}

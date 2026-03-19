@@ -7,10 +7,13 @@ interface Entry {
   total_points: number; correct_picks: number; total_picks: number; current_streak: number; rank: number
 }
 
+type Tab = 'total' | 'accuracy' | 'streak'
+
 export default function LeaderboardScreen() {
+  const [allData, setAllData] = useState<Omit<Entry, 'rank'>[]>([])
   const [entries, setEntries] = useState<Entry[]>([])
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [tab, setTab] = useState<'total' | 'accuracy' | 'streak'>('total')
+  const [tab, setTab] = useState<Tab>('total')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -19,14 +22,18 @@ export default function LeaderboardScreen() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       setCurrentUserId(user?.id || null)
+
       const { data } = await supabase
         .from('user_stats')
         .select('*, profiles!inner(username, display_name)')
-        .order(tab === 'total' ? 'total_points' : tab === 'accuracy' ? 'correct_picks' : 'current_streak', { ascending: false })
-        .limit(50)
+        .order('total_points', { ascending: false })
+        .limit(100)
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mapped = (data || []).map((row: any, i: number) => ({
+      const mapped: Omit<Entry, 'rank'>[] = (data || []).map((row: {
+        user_id: string; total_points: number; correct_picks: number
+        total_picks: number; current_streak: number
+        profiles: { username: string; display_name: string | null }
+      }) => ({
         user_id: row.user_id,
         username: row.profiles.username,
         display_name: row.profiles.display_name,
@@ -34,15 +41,37 @@ export default function LeaderboardScreen() {
         correct_picks: row.correct_picks,
         total_picks: row.total_picks,
         current_streak: row.current_streak,
-        rank: i + 1,
       }))
-      setEntries(mapped)
+
+      setAllData(mapped)
       setLoading(false)
     }
     fetchLeaderboard()
-  }, [tab])
+  }, [])
+
+  // Re-sort client-side when tab changes
+  useEffect(() => {
+    const sorted =
+      tab === 'accuracy'
+        ? [...allData].sort((a, b) => {
+            const ra = a.total_picks > 0 ? a.correct_picks / a.total_picks : 0
+            const rb = b.total_picks > 0 ? b.correct_picks / b.total_picks : 0
+            return rb - ra
+          })
+        : tab === 'streak'
+        ? [...allData].sort((a, b) => b.current_streak - a.current_streak)
+        : allData
+
+    setEntries(sorted.slice(0, 50).map((e, i) => ({ ...e, rank: i + 1 })))
+  }, [tab, allData])
 
   const RANK_COLORS: Record<number, string> = { 1: '#facc15', 2: '#cbd5e1', 3: '#b45309' }
+
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'total', label: 'Points' },
+    { key: 'accuracy', label: 'Accuracy' },
+    { key: 'streak', label: 'Streaks' },
+  ]
 
   return (
     <View style={styles.container}>
@@ -51,13 +80,10 @@ export default function LeaderboardScreen() {
         <Text style={styles.subheading}>Top pickers this season</Text>
       </View>
 
-      {/* Tabs */}
       <View style={styles.tabs}>
-        {(['total', 'accuracy', 'streak'] as const).map((t) => (
-          <TouchableOpacity key={t} style={[styles.tab, tab === t && styles.tabActive]} onPress={() => setTab(t)}>
-            <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
-              {t === 'total' ? 'Points' : t === 'accuracy' ? 'Accuracy' : 'Streaks'}
-            </Text>
+        {tabs.map((t) => (
+          <TouchableOpacity key={t.key} style={[styles.tab, tab === t.key && styles.tabActive]} onPress={() => setTab(t.key)}>
+            <Text style={[styles.tabText, tab === t.key && styles.tabTextActive]}>{t.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -66,6 +92,9 @@ export default function LeaderboardScreen() {
         <View style={styles.center}><ActivityIndicator color="#0ea5e9" /></View>
       ) : (
         <ScrollView contentContainerStyle={styles.list}>
+          {entries.length === 0 && (
+            <Text style={styles.empty}>No entries yet. Be the first!</Text>
+          )}
           {entries.map((entry) => {
             const accuracy = entry.total_picks > 0 ? Math.round((entry.correct_picks / entry.total_picks) * 100) : 0
             const isMe = entry.user_id === currentUserId
@@ -105,6 +134,7 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#fff' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { paddingHorizontal: 20, paddingBottom: 40 },
+  empty: { color: 'rgba(255,255,255,0.3)', textAlign: 'center', marginTop: 40 },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14,
     backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14,

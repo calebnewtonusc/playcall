@@ -17,6 +17,7 @@ function BillingContent() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [portalLoading, setPortalLoading] = useState(false)
+  const [portalError, setPortalError] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchProfile() {
@@ -36,10 +37,20 @@ function BillingContent() {
 
   async function handlePortal() {
     setPortalLoading(true)
-    const res = await fetch('/api/stripe/portal', { method: 'POST' })
-    const { url } = await res.json()
-    if (url) window.location.href = url
-    else setPortalLoading(false)
+    setPortalError(null)
+    try {
+      const res = await fetch('/api/stripe/portal', { method: 'POST' })
+      const { url, error } = await res.json()
+      if (url) {
+        window.location.href = url
+      } else {
+        setPortalError(error || 'Could not open billing portal. Please try again.')
+        setPortalLoading(false)
+      }
+    } catch {
+      setPortalError('Something went wrong. Please try again.')
+      setPortalLoading(false)
+    }
   }
 
   if (loading) {
@@ -108,13 +119,16 @@ function BillingContent() {
         )}
 
         {profile?.is_pro && profile.stripe_customer_id && (
-          <button
-            onClick={handlePortal}
-            disabled={portalLoading}
-            className="text-sm text-white/40 hover:text-white disabled:opacity-50 transition-colors underline underline-offset-2"
-          >
-            {portalLoading ? 'Opening portal...' : 'Manage subscription'}
-          </button>
+          <div>
+            {portalError && <p className="text-red-400 text-xs mb-2">{portalError}</p>}
+            <button
+              onClick={handlePortal}
+              disabled={portalLoading}
+              className="text-sm text-white/40 hover:text-white disabled:opacity-50 transition-colors underline underline-offset-2"
+            >
+              {portalLoading ? 'Opening portal...' : 'Manage subscription'}
+            </button>
+          </div>
         )}
       </div>
     </div>
