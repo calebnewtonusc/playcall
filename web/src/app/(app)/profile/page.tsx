@@ -9,24 +9,33 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchProfile() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/login')
+          return
+        }
+
+        const [{ data: profileData, error: profileErr }, { data: statsData, error: statsErr }] = await Promise.all([
+          supabase.from('profiles').select('*').eq('id', user.id).single(),
+          supabase.from('user_stats').select('*').eq('user_id', user.id).single(),
+        ])
+
+        if (profileErr) throw profileErr
+        if (statsErr && statsErr.code !== 'PGRST116') throw statsErr
+
+        setProfile(profileData)
+        setStats(statsData)
+      } catch {
+        setError('Failed to load profile. Please refresh.')
+      } finally {
+        setLoading(false)
       }
-
-      const [{ data: profileData }, { data: statsData }] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).single(),
-        supabase.from('user_stats').select('*').eq('user_id', user.id).single(),
-      ])
-
-      setProfile(profileData)
-      setStats(statsData)
-      setLoading(false)
     }
     fetchProfile()
   }, [router])
@@ -35,6 +44,14 @@ export default function ProfilePage() {
     return (
       <div className="flex justify-center py-24">
         <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center py-24">
+        <p className="text-red-400 text-sm">{error}</p>
       </div>
     )
   }
