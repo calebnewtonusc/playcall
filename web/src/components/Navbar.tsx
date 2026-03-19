@@ -8,6 +8,7 @@ const links = [
   { href: '/picks', label: 'Picks' },
   { href: '/leaderboard', label: 'Leaderboard' },
   { href: '/profile', label: 'Profile' },
+  { href: '/billing', label: 'Billing' },
 ]
 
 export default function Navbar() {
